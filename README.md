@@ -1,73 +1,77 @@
-# React + TypeScript + Vite
+# Miro-Style Canvas Navigation
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A reference implementation for infinite canvas interaction. This project solves the common challenges of building professional-grade creative tools: fluid omni-directional panning, precisely-tuned zoom mechanics, and scale-aware object interaction.
 
-Currently, two official plugins are available:
+### Why this exists
+Implementing a "natural" navigation experience like Miro's is deceptively complex. This app handles the edge cases developers frequently struggle with:
+- **Fluid Panning**: Unified support for mouse-drag, scroll wheel, and two-finger touchpad slides.
+- **Precision Zooming**: Independent velocity curves for `Ctrl + Wheel` (precision) and trackpad pinch-to-zoom (natural).
+- **Interactive Items**: Reliable item dragging with real-time scale compensation and event isolation.
+- **Viewport Mastery**: Native-feeling "zoom-to-cursor" and optimized "Fit to Screen" logic.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Credits
+Seems easy but it was not. Took many trial and errors to make it working as expected.
+Credits goes to Antigravity + Gemini 3 Pro (high) for writing 99% of code
+And to Antigravity + Sonnet 4.5 for fixing last bug, which Gemini couldn't fix for 2 hours of agentic work and in the end Sonnet solved in 5 minutes with 3 lines of code (1%).
 
-## React Compiler
+## starting app
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```npm run dev```
 
-## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 1. Canvas Navigation
+The canvas supports physics-based navigation using `react-spring` and `@use-gesture/react`.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+*   **Pan (Drag)**:
+    *   Click and drag to move the canvas.
+    *   **Inertia (Coasting)**: Releasing a drag with velocity triggers a physics-based slide (throw), simulating a natural "toss" effect.
+*   **Pan (Wheel)**:
+    *   Standard scrolling (vertical/horizontal) pans the canvas.
+    *   Mimics native OS scrolling behavior (immediate response).
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 2. Item Interaction
+*   **Drag & Drop**:
+    *   Items (rectangles) can be dragged independently of the canvas.
+    *   **Event Isolation**: Dragging an item prevents the canvas from panning (via `stopPropagation`).
+    *   **Scale Compensation**: Movement is automatically adjusted based on current zoom level to ensure 1:1 cursor tracking.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 3. Zooming Behaviors
+Multiple zoom modes are supported, each with specific tuning for precision.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+*   **Pinch-to-Zoom**:
+    *   Native trackpad support.
+    *   Zooms towards the center of the pinch gesture.
+*   **Wheel Zoom (Ctrl + Scroll)**:
+    *   Hold `Ctrl` and scroll to zoom.
+    *   **Cursor-Focused**: Zooming is anchored exactly to the mouse cursor position (Miro-style).
+    *   **Smooth Smoothing**: Uses exponential decay for fine-grained control.
+*   **Button Zoom (`+` / `-`)**:
+    *   **Center-Focused**: Buttons zoom towards the exact center of the current viewport.
+    *   **Fast Response**: Uses a 25ms animation duration to ensure instant response and prevent visual drift during rapid clicking.
+*   **Zoom Limits**:
+    *   Constrained between **10%** and **500%**.
+
+## 3. Smart Center ("Fit to Screen")
+*   **Functionality**: Automatically calculates the optimal scale and position to fit the content within the viewport.
+*   **Trigger**: 
+    *   UI Button (`Scan` icon).
+    *   Keyboard Shortcut: `Alt + 1`.
+*   **Configuration**: Respects a configurable padding to ensure content isn't flush with edges.
+
+## 4. UI Overlay
+A clean, light-mode interface floats above the canvas.
+
+*   **Controls** (Right-Bottom):
+    1.  **Help**: Toggles a popup showing shortcuts.
+    2.  **Fit to Screen**: Triggers Smart Center.
+    3.  **Zoom In / Out**: Incremental zoom controls.
+    4.  **Level Display**: Shows current zoom percentage (e.g., "100%").
+*   **Event Isolation**: Interaction with UI buttons is isolated from the canvas; clicking buttons does **not** trigger canvas drag/pan events.
+
+## Technical Details
+*   **Stack**: React, TypeScript, Vite.
+*   **Animation**: `@react-spring/web` for performant, interruptible physics animations.
+*   **Gestures**: `@use-gesture/react` for normalizing touch, mouse, and wheel events.
+*   **Icons**: `lucide-react`.

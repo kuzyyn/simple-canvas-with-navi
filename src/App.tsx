@@ -86,11 +86,7 @@ const ZOOM_BUTTON_CONFIG = {
   ANIMATION: { duration: 25 } // Fixed duration locks x/y/scale timing to prevent center drift
 };
 
-// ====================================================================
-// SMART CENTER CONFIGURATION
-// Content bounds to fit (The Test Rectangle is 200x150 centered)
-// ====================================================================
-const CONTENT_BOUNDS = { width: 200, height: 150 };
+
 
 
 // ====================================================================
@@ -243,42 +239,72 @@ export default function App() {
   const handleZoomIn = () => performCenterZoom('in');
   const handleZoomOut = () => performCenterZoom('out');
 
+
+
   const handleSmartCenter = useCallback(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || items.length === 0) return;
 
     // 1. Get Viewport Dimensions
     const { width: viewportW, height: viewportH } = containerRef.current.getBoundingClientRect();
-
-    // 2. Calculate Scale to Fit Content
-    // Padding to ensure content isn't touching edges
     const padding = 50;
+    // const inboxHeight = 160; // Assuming inbox might take space, but for now ignoring or treating as padding
     const availableW = viewportW - (padding * 2);
     const availableH = viewportH - (padding * 2);
 
-    const scaleX = availableW / CONTENT_BOUNDS.width;
-    const scaleY = availableH / CONTENT_BOUNDS.height;
+    // 2. Calculate Content Bounding Box
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
 
-    // Fit entire content w/ padding
+    items.forEach(item => {
+      // Fallback dimensions if unassigned (though types say they are required)
+      const w = item.width || 200;
+      const h = item.height || 150;
+
+      // Item x/y is the center? 
+      // Checking DraggableItem: translate(-50%, -50%). Yes, x/y is center.
+      // So bounds are x - w/2, x + w/2
+      const halfW = w / 2;
+      const halfH = h / 2;
+
+      minX = Math.min(minX, item.x - halfW);
+      minY = Math.min(minY, item.y - halfH);
+      maxX = Math.max(maxX, item.x + halfW);
+      maxY = Math.max(maxY, item.y + halfH);
+    });
+
+    const boxW = maxX - minX;
+    const boxH = maxY - minY;
+
+    // If simply no width/height (single point), add a buffer
+    if (boxW === 0 || boxH === 0) return;
+
+    // 3. Calculate Scale to Fit
+    const scaleX = availableW / boxW;
+    const scaleY = availableH / boxH;
     let targetScale = Math.min(scaleX, scaleY);
 
-    // Clamp scale to reasonable limits (don't zoom in to 5000% if content is tiny)
-    targetScale = Math.min(Math.max(targetScale, 0.1), 1.0); // Cap at 1.0 (100%) for "Reset" feel, or loosen if desired.
+    // Clamp scale
+    targetScale = Math.min(Math.max(targetScale, 0.1), 1.5);
 
-    // 3. Center Position
-    // Since our Content (Test Rect) is centered at (0,0) of the *content space* (relative to transform origin),
-    // and we want that (0,0) to be at the center of the viewport.
-    // Our existing logic places the content div at (0,0) top-left of viewport if x/y=0.
-    // And inside it, the Rect is centered (50%/50%).
-    // So actually: x=0, y=0 IS centralized. 
-    // We just need to animate back to 0,0 and the calculated scale.
+    // 4. Calculate Center Target
+    const centerX = minX + boxW / 2;
+    const centerY = minY + boxH / 2;
+
+    // We want the visual center of the bounding box (centerX, centerY) 
+    // to match the visual center of the viewport (viewportW/2, viewportH/2).
+    // The transform formula is: ScreenX = (WorldX * scale) + x
+    // So: x = ScreenX - (WorldX * scale)
+
+    const targetX = (viewportW / 2) - (centerX * targetScale);
+    const targetY = (viewportH / 2) - (centerY * targetScale);
 
     api.start({
-      x: 0,
-      y: 0,
+      x: targetX,
+      y: targetY,
       scale: targetScale,
       config: { mass: 1, tension: 200, friction: 50 }
     });
-  }, [api]);
+  }, [items, api]);
 
   // --- KEYBOARD SHORTCUTS ---
 
@@ -716,20 +742,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {/* Smart Center Hint */}
-      <div style={{
-        position: 'absolute',
-        top: 20,
-        right: 20,
-        fontSize: 12,
-        color: '#666',
-        backgroundColor: 'rgba(255,255,255,0.8)',
-        padding: '4px 8px',
-        borderRadius: 4
-      }}>
-        Alt + 1 to Smart Center
-      </div>
 
     </div>
   )
