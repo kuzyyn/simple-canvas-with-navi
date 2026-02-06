@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react'
-import { useSpring, animated } from '@react-spring/web'
+import { useSpring, useSpringRef, animated } from '@react-spring/web'
 import { useGesture } from '@use-gesture/react'
 import { Scan, ZoomIn, ZoomOut, CircleHelp, X } from 'lucide-react'
 
@@ -113,7 +113,7 @@ const INITIAL_ITEMS: Item[] = [
 const DraggableItem = ({ item, scale, onUpdate }: { item: Item, scale: any, onUpdate: (id: string, newPos: { x: number, y: number }) => void }) => {
 
   const bind = useGesture({
-    onDrag: ({ movement: [mx, my], first, memo, event }) => {
+    onDrag: ({ movement: [mx, my], first, memo }) => {
       // event.stopPropagation(); 
       // Note: Native listener on container sees event before React, 
       // so we use data-draggable check in container instead.
@@ -197,9 +197,9 @@ export default function App() {
   // ... existing code ...
 
 
-
-
-  const [{ x, y, scale }, api] = useSpring(() => ({ x: 0, y: 0, scale: 1, config: DEFAULT_CONFIG }))
+  const api = useSpringRef()
+  const springs = useSpring({ x: 0, y: 0, scale: 1, config: DEFAULT_CONFIG, ref: api })
+  const { x, y, scale } = springs
 
   // --- ACTIONS ---
 
