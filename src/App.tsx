@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, memo as React_memo } from 'react'
 import { useSpring, useSpringRef, animated } from '@react-spring/web'
 import { useGesture } from '@use-gesture/react'
 import { Scan, ZoomIn, ZoomOut, CircleHelp, X } from 'lucide-react'
@@ -105,12 +105,22 @@ interface Item {
 const INITIAL_ITEMS: Item[] = [
   { id: '1', x: 0, y: 0, width: 200, height: 150, color: '#ff5555', label: 'Red Rect' },
   { id: '2', x: 300, y: 100, width: 150, height: 150, color: '#55ff55', label: 'Green Rect' },
+  { id: '3', x: 600, y: 200, width: 180, height: 120, color: '#5555ff', label: 'Blue Rect' },
+  { id: '4', x: -200, y: 300, width: 160, height: 160, color: '#ffaa55', label: 'Orange Rect' },
+  { id: '5', x: 200, y: -150, width: 140, height: 140, color: '#ff55ff', label: 'Magenta Rect' },
+  { id: '6', x: 500, y: -100, width: 200, height: 100, color: '#55ffff', label: 'Cyan Rect' },
+  { id: '7', x: -300, y: -200, width: 170, height: 130, color: '#ffff55', label: 'Yellow Rect' },
+  { id: '8', x: 100, y: 400, width: 150, height: 150, color: '#aa55ff', label: 'Purple Rect' },
+  { id: '9', x: -100, y: 100, width: 190, height: 110, color: '#55aaff', label: 'Sky Rect' },
+  { id: '10', x: 400, y: -300, width: 160, height: 140, color: '#ff5588', label: 'Pink Rect' },
+  { id: '11', x: -400, y: 0, width: 180, height: 120, color: '#88ff55', label: 'Lime Rect' },
+  { id: '12', x: 0, y: 250, width: 170, height: 160, color: '#ff8855', label: 'Coral Rect' },
 ];
 
 // ====================================================================
 // COMPONENT: DRAGGABLE ITEM
 // ====================================================================
-const DraggableItem = ({ item, scale, onUpdate }: { item: Item, scale: any, onUpdate: (id: string, newPos: { x: number, y: number }) => void }) => {
+const DraggableItem = React_memo(({ item, scale, onUpdate }: { item: Item, scale: any, onUpdate: (id: string, newPos: { x: number, y: number }) => void }) => {
 
   const bind = useGesture({
     onDrag: ({ movement: [mx, my], first, memo }) => {
@@ -169,12 +179,18 @@ const DraggableItem = ({ item, scale, onUpdate }: { item: Item, scale: any, onUp
       {item.label}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Return true if props are equal (skip re-render)
+  return (
+    prevProps.item === nextProps.item &&
+    prevProps.scale === nextProps.scale &&
+    prevProps.onUpdate === nextProps.onUpdate
+  );
+});
 
 
 export default function App() {
   const containerRef = useRef<HTMLDivElement>(null)
-
   // UI State
   const [showHelp, setShowHelp] = useState(false)
   const [items, setItems] = useState<Item[]>(INITIAL_ITEMS);
