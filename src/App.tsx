@@ -121,18 +121,28 @@ const INITIAL_ITEMS: Item[] = [
 // COMPONENT: DRAGGABLE ITEM
 // ====================================================================
 const DraggableItem = React_memo(({ item, scale, onUpdate }: { item: Item, scale: any, onUpdate: (id: string, newPos: { x: number, y: number }) => void }) => {
+  const [{ x, y }, api] = useSpring(() => ({
+    x: item.x,
+    y: item.y,
+    config: { duration: 0 },
+    immediate: true
+  }), [item.x, item.y]); // Declarative sync
+
+  // Removed manual useEffect sync to prevent race conditions
 
   const bind = useGesture({
-    onDrag: ({ movement: [mx, my], first, memo }) => {
-      // event.stopPropagation(); 
-      // Note: Native listener on container sees event before React, 
+    onDrag: ({ movement: [mx, my], first, memo, down }) => {
+      // event.stopPropagation();
+      // Note: Native listener on container sees event before React,
       // so we use data-draggable check in container instead.
 
-      let [initialX, initialY] = memo || [item.x, item.y];
+      let [initialX, initialY] = memo || [x.get(), y.get()];
 
       if (first) {
-        initialX = item.x;
-        initialY = item.y;
+        const currentSpringX = x.get();
+        const currentSpringY = y.get();
+        initialX = currentSpringX;
+        initialY = currentSpringY;
         memo = [initialX, initialY];
       }
 
@@ -140,19 +150,28 @@ const DraggableItem = React_memo(({ item, scale, onUpdate }: { item: Item, scale
       const newX = initialX + mx / currentScale;
       const newY = initialY + my / currentScale;
 
-      onUpdate(item.id, { x: newX, y: newY });
+      if (down) {
+        api.start({ x: newX, y: newY, immediate: true });
+      } else {
+        // Only commit if there was actual movement (prevents clicks from triggering updates)
+        const hasMoved = Math.abs(mx) > 0 || Math.abs(my) > 0;
+
+        if (hasMoved) {
+          onUpdate(item.id, { x: newX, y: newY });
+        }
+      }
 
       return memo;
     }
   }, {
     drag: {
-      from: () => [0, 0], // Not used because we use memo, but good practice
-      filterTaps: true
+      filterTaps: true,
+      threshold: 5 // Require 5px movement to start drag
     }
   });
 
   return (
-    <div
+    <animated.div
       {...bind()}
       data-draggable="true"
       style={{
@@ -161,8 +180,8 @@ const DraggableItem = React_memo(({ item, scale, onUpdate }: { item: Item, scale
         backgroundColor: item.color,
         position: 'absolute',
         // Center the coordinate system of the item to its x/y
-        left: item.x,
-        top: item.y,
+        left: x,
+        top: y,
         transform: 'translate(-50%, -50%)',
         borderRadius: 8,
         boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
@@ -177,7 +196,7 @@ const DraggableItem = React_memo(({ item, scale, onUpdate }: { item: Item, scale
       }}
     >
       {item.label}
-    </div>
+    </animated.div>
   );
 }, (prevProps, nextProps) => {
   // Return true if props are equal (skip re-render)
