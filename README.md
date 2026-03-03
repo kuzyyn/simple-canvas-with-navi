@@ -15,9 +15,17 @@ Credits goes to Antigravity + Gemini 3 Pro (high) for writing 99% of code
 And to Antigravity + Sonnet 4.5 for fixing last bug, which Gemini couldn't fix for 2 hours of agentic work and in the end Sonnet solved in 5 minutes with 3 lines of code (1%).
 Note 2: actually it was not the last issue. After further playing, it turned out dragging is not optimal, it refreshed state of the card with each move. Replacing with drag animation + commit at the end helped for performance and took 5 minutes to deliver, then solving issue with inconsistent state took another 3h and trying different approaches with Antigravity to fix.
 
-## starting app
+## Setup & Installation
 
-```npm run dev```
+1.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+
+2.  **Start the development server**:
+    ```bash
+    npm run dev
+    ```
 
 
 
